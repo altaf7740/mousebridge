@@ -16,7 +16,6 @@ PKG=com.tvtools.mousebridge
 "${ADB[@]}" shell appops set $PKG SYSTEM_ALERT_WINDOW allow
 # Options the TV uses when it starts the daemon at boot.
 "${ADB[@]}" shell "echo '--sensitivity=$SENS' > /data/local/tmp/mousebridge.args"
-
 # Start the daemon now (same command the app uses at boot).
 "${ADB[@]}" shell 'p=$(pidof mousebridge); [ -n "$p" ] && kill $p; sleep 0.5; true'
 "${ADB[@]}" shell 'A=$(cat /data/local/tmp/mousebridge.args); APK=$(pm path com.tvtools.mousebridge | head -1 | cut -d: -f2);
@@ -34,7 +33,7 @@ echo "Mouse Bridge running. Log: adb shell cat /data/local/tmp/mousebridge.log"
 echo "Checking boot auto-start... if the TV shows 'Allow network debugging?', tick"
 echo "'Always allow from this computer' and choose Allow (needed only once)."
 for i in $(seq 1 45); do
-  line=$("${ADB[@]}" logcat -d -s MouseBridge:I MouseBridge:W | grep -E "self-adb (ok|failed) \(check\)" | tail -1 || true)
+  line=$("${ADB[@]}" logcat -d -s MouseBridge:I | grep -E "self-adb (ok|failed) \(check\)" | tail -1 || true)
   if [ -n "$line" ]; then break; fi
   sleep 2
 done

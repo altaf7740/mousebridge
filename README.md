@@ -51,6 +51,13 @@ or inject events. So at boot the app starts the daemon through the TV's own adb:
    `/data/local/tmp/mousebridge.args`.
 3. The same check runs as a watchdog. If the daemon is gone for more than 6 s, it is started again,
    at most once every 30 s.
+4. Once a day the app also runs a no-op command (`echo keep-alive`) over the same connection.
+   Android forgets an "Always allow" key that goes unused for 7 days
+   (`adb_allowed_connection_time`), and this keeps the key fresh while the TV stays on.
+
+Tested with `adb reboot`: the app started on `BOOT_COMPLETED` and launched the daemon about 8 s
+later with no prompt. The mouse worked as soon as the home screen appeared. Turning the TV off and
+on with the remote is only standby, not a reboot: the daemon just keeps running.
 
 The TV has to trust the app's adb key once. When `./start.sh` runs, the TV shows
 **Allow USB debugging?** for the key `mousebridge@tv`. Tick **Always allow from this computer** and
@@ -58,7 +65,9 @@ choose **Allow**. `start.sh` then prints `Auto-start at boot: enabled.`
 
 If the TV's adb keys are ever cleared (Developer options > Revoke USB debugging authorisations), or
 network debugging is turned off, auto-start stops working. Run `./start.sh` again and accept the
-prompt.
+prompt. The same happens if the TV is unplugged for more than 7 days, because the key expires. In
+that case the prompt appears on screen at the next boot: tick **Always allow** and choose **Allow**,
+and the bridge starts by itself.
 
 ## Usage (from the Mac, TV reachable over adb)
 
@@ -69,6 +78,7 @@ prompt.
 ./stop.sh                           # stop and turn off auto-start; clicks are broken again
 adb shell cat /data/local/tmp/mousebridge.log   # daemon log
 adb logcat -s MouseBridge           # app log (boot start, self-adb, watchdog)
+adb shell pidof mousebridge         # is the daemon running?
 ```
 
 `start.sh` does the following:
@@ -84,7 +94,7 @@ Run it once, then again only after changing the code or the cursor speed.
 | File | Purpose |
 | --- | --- |
 | `src/.../Daemon.java` | Shell-side daemon: grabs the mouse and injects fixed events |
-| `src/.../CursorService.java` | Draws the cursor overlay, starts the daemon, and acts as the watchdog |
+| `src/.../CursorService.java` | Draws the cursor overlay, starts the daemon, acts as the watchdog, and refreshes the adb key daily |
 | `src/.../AdbClient.java` | Minimal adb protocol client (connect, RSA auth, run a shell command) |
 | `src/.../BootReceiver.java` | Boot auto-start, plus the ENABLE/DISABLE commands from start.sh and stop.sh |
 | `AndroidManifest.xml` | App manifest |

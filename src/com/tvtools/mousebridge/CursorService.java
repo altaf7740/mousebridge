@@ -38,6 +38,10 @@ public class CursorService extends Service {
     private static final long HIDE_AFTER_MS = 8000;
     private static final long LAUNCH_AFTER_MS = 6000;   // daemon missing this long -> launch it
     private static final long RELAUNCH_EVERY_MS = 30000;
+    // Android forgets an "Always allow" adb key that goes unused for 7 days; using it once a day
+    // keeps it valid while the TV stays on.
+    private static final long KEEPALIVE_EVERY_MS = 24L * 60 * 60 * 1000;
+    private volatile long lastKeepAlive = SystemClock.uptimeMillis();
 
     /**
      * Same command start.sh uses: stop an old daemon, then start one detached from the adb session,
@@ -92,6 +96,9 @@ public class CursorService extends Service {
             if (!connected && now - disconnectedSince > LAUNCH_AFTER_MS && now - lastLaunch > RELAUNCH_EVERY_MS) {
                 lastLaunch = now;
                 runAdb(DAEMON_START, "launch daemon");
+            } else if (now - lastKeepAlive > KEEPALIVE_EVERY_MS && !adbBusy) {
+                lastKeepAlive = now;
+                runAdb("echo keep-alive", "keep-alive");
             }
             main.postDelayed(this, 1000);
         }
