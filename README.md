@@ -61,7 +61,9 @@ or inject events. So at boot the app starts the daemon through the TV's own adb:
    (`adb_allowed_connection_time`), and this keeps the key fresh while the TV stays on.
 
 Tested with `adb reboot`: the app started on `BOOT_COMPLETED` and launched the daemon about 8 s
-later with no prompt. The mouse worked as soon as the home screen appeared. Turning the TV off and
+later with no prompt. The mouse worked as soon as the home screen appeared. Also tested by unplugging the TV's power cable: after
+the cold boot the daemon started once, about 7 s after boot, and grabbed the Logitech mouse node
+(`event3`), not the remote. Turning the TV off and
 on with the remote is only standby, not a reboot: the daemon just keeps running.
 
 The TV has to trust the app's adb key once. When `./start.sh` runs, the TV shows
