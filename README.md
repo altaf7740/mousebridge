@@ -27,7 +27,12 @@ Two parts, both in `build/mousebridge.apk`:
 
 1. **Daemon** (`src/com/tvtools/mousebridge/Daemon.java`) runs as the adb shell user through
    `app_process`, like scrcpy's server. It finds the mouse's `/dev/input/eventN` node and takes it
-   exclusively (`EVIOCGRAB`), so the firmware no longer sees it. It tracks the cursor position and
+   exclusively (`EVIOCGRAB`), so the firmware no longer sees it. Only USB (bus `0003`) or Bluetooth
+   (`0005`) devices with `REL_X`, `REL_Y` and a left button count as the mouse. The TV remote
+   (`IR_sony`, bus `0000`) reports the same axes for its pointer mode, so without this rule it could
+   be grabbed instead. If a receiver exposes a keyboard node and a mouse node, the node without
+   letter keys is used. `/dev/input/eventN` numbers change between boots, so the mouse is looked up
+   by these properties, never by number. It tracks the cursor position and
    injects mouse events with `buttonState = 0` through `InputManagerGlobal.injectInputEvent`.
    - Left button: click and drag (`DOWN`/`MOVE`/`UP`)
    - Wheel: native `ACTION_SCROLL`
@@ -76,7 +81,7 @@ and the bridge starts by itself.
 ./start.sh                          # install, start, and turn on auto-start at boot
 ./start.sh 192.161.0.109:5555 1.3   # pick a device and set cursor speed (default 1.0)
 ./stop.sh                           # stop and turn off auto-start; clicks are broken again
-adb shell cat /data/local/tmp/mousebridge.log   # daemon log
+adb shell cat /data/local/tmp/mousebridge.log   # daemon log (every start is kept; shows which device was grabbed)
 adb logcat -s MouseBridge           # app log (boot start, self-adb, watchdog)
 adb shell pidof mousebridge         # is the daemon running?
 ```

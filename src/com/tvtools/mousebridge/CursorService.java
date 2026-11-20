@@ -49,10 +49,12 @@ public class CursorService extends Service {
      */
     static final String DAEMON_START =
             "p=$(pidof mousebridge); [ -n \"$p\" ] && kill $p; sleep 0.3; "
+            + "L=/data/local/tmp/mousebridge.log; [ $(wc -c < $L 2>/dev/null || echo 0) -gt 200000 ] && tail -c 50000 $L > $L.tmp && mv $L.tmp $L; "
+            + "echo \"--- start $(date) (boot)\" >> $L; "
             + "A=$(cat /data/local/tmp/mousebridge.args 2>/dev/null); "
             + "APK=$(pm path com.tvtools.mousebridge | head -1 | cut -d: -f2); "
             + "setsid nohup app_process -Djava.class.path=$APK /system/bin --nice-name=mousebridge "
-            + "com.tvtools.mousebridge.Daemon $A > /data/local/tmp/mousebridge.log 2>&1 < /dev/null & "
+            + "com.tvtools.mousebridge.Daemon $A >> /data/local/tmp/mousebridge.log 2>&1 < /dev/null & "
             + "echo launched";
 
     static boolean isEnabled(android.content.Context c) {

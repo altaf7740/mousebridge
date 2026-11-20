@@ -19,8 +19,9 @@ PKG=com.tvtools.mousebridge
 # Start the daemon now (same command the app uses at boot).
 "${ADB[@]}" shell 'p=$(pidof mousebridge); [ -n "$p" ] && kill $p; sleep 0.5; true'
 "${ADB[@]}" shell 'A=$(cat /data/local/tmp/mousebridge.args); APK=$(pm path com.tvtools.mousebridge | head -1 | cut -d: -f2);
+  echo "--- start $(date) (start.sh)" >> /data/local/tmp/mousebridge.log
   setsid nohup app_process -Djava.class.path=$APK /system/bin --nice-name=mousebridge com.tvtools.mousebridge.Daemon $A \
-  > /data/local/tmp/mousebridge.log 2>&1 < /dev/null &'
+  >> /data/local/tmp/mousebridge.log 2>&1 < /dev/null &'
 sleep 2
 if ! "${ADB[@]}" shell pidof mousebridge >/dev/null; then
   echo "Mouse Bridge failed to start:"; "${ADB[@]}" shell cat /data/local/tmp/mousebridge.log; exit 1

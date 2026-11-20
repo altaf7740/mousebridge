@@ -71,29 +71,51 @@ public final class Daemon {
 
     // ---------- device ----------
 
-    /** First evdev node that reports REL_X, REL_Y and a left button: a mouse. */
+    /**
+     * The external mouse's evdev node: a USB (bus 0003) or Bluetooth (0005) device reporting
+     * REL_X, REL_Y and a left button. Built-in devices are skipped: the TV remote ("IR_sony", bus
+     * 0000) also reports mouse axes for its pointer mode, and grabbing it would break the remote.
+     * A receiver can expose several such nodes (keyboard interface and mouse interface); the one
+     * without letter keys is the mouse, so it wins. Device numbers change between boots.
+     */
     private static String findMouse() {
-        String out = exec("getevent -pl");
+        String out = exec("getevent -il");
         if (out == null) return null;
-        String path = null;
-        boolean relX = false, relY = false, btn = false;
+        String best = null, bestName = "";
+        int bestScore = -1;
+        String path = null, name = "", bus = "";
+        boolean relX = false, relY = false, btn = false, letters = false;
         for (String line : (out + "\nadd device 0: END").split("\n")) {
             line = line.trim();
             if (line.startsWith("add device")) {
-                if (path != null && relX && relY && btn) return path;
+                boolean external = bus.equals("0003") || bus.equals("0005");
+                if (path != null && external && relX && relY && btn) {
+                    int score = letters ? 1 : 2;
+                    if (score > bestScore) { best = path; bestName = name; bestScore = score; }
+                }
                 int i = line.indexOf("/dev/input/");
                 path = i >= 0 ? line.substring(i) : null;
-                relX = relY = btn = false;
+                name = bus = "";
+                relX = relY = btn = letters = false;
+            } else if (line.startsWith("bus:")) {
+                bus = line.substring(4).trim();
+            } else if (line.startsWith("name:")) {
+                name = line.substring(5).trim();
             } else {
                 for (String tok : line.split("\\s+")) {
                     if (tok.equals("REL_X")) relX = true;
                     else if (tok.equals("REL_Y")) relY = true;
                     else if (tok.equals("BTN_MOUSE") || tok.equals("BTN_LEFT")) btn = true;
+                    else if (tok.equals("KEY_A")) letters = true;
                 }
             }
         }
-        return null;
+        if (best != null && !best.equals(lastFound)) log("mouse found: " + best + " " + bestName);
+        lastFound = best;
+        return best;
     }
+
+    private static String lastFound;
 
     private static void runDevice(String dev) {
         FileDescriptor fd = null;
